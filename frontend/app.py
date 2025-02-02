@@ -6,7 +6,7 @@ import os
 app = Flask(__name__)
 
 # Load MongoDB Atlas URI from environment variables
-MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://<user>:<pass>@fitness.n3yup.mongodb.net/?retryWrites=true&w=majority&appName=fitness")
+MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://tophu:iloveyordles123@fitness.n3yup.mongodb.net/?retryWrites=true&w=majority&appName=fitness")
 
 try:
     client = MongoClient(MONGO_URI)  # Connect to MongoDB Atlas
