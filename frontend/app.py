@@ -5,15 +5,16 @@ import os
 
 app = Flask(__name__)
 
-# MongoDB Connection (Use environment variable if deploying)
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
+# Load MongoDB Atlas URI from environment variables
+MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://<user>:<pass>@fitness.n3yup.mongodb.net/?retryWrites=true&w=majority&appName=fitness")
+
 try:
-    client = MongoClient(MONGO_URI)
+    client = MongoClient(MONGO_URI)  # Connect to MongoDB Atlas
     db = client["fitness_db"]  # Database name
     collection = db["exercises"]  # Collection name
-    print("✅ Connected to MongoDB successfully")
+    print("✅ Connected to MongoDB Atlas successfully")
 except Exception as e:
-    print(f"❌ Error connecting to MongoDB: {e}")
+    print(f"❌ Error connecting to MongoDB Atlas: {e}")
 
 @app.route('/')
 def index():
@@ -43,14 +44,29 @@ def remove_exercise(exercise_id):
     try:
         collection.delete_one({"_id": ObjectId(exercise_id)})  # Remove by MongoDB ObjectId
     except Exception as e:
-        print(f"Error deleting exercise: {e}")
+        print(f"❌ Error deleting exercise: {e}")
     return redirect(url_for('home'))
 
 @app.route('/exercise/<exercise_name>')
 def exercise(exercise_name):
     return render_template('exercise.html', exercise_name=exercise_name)
 
-# API Endpoint to get all exercises as JSON (optional)
+# ✅ New API Endpoint to Upload Data
+@app.route('/upload', methods=['POST'])
+def upload():
+    try:
+        # Parse incoming JSON data
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        # Insert data into MongoDB
+        result = collection.insert_one(data)
+        return jsonify({"message": "Data uploaded successfully", "id": str(result.inserted_id)}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ✅ API Endpoint to Get All Exercises (Testing)
 @app.route('/api/exercises', methods=['GET'])
 def get_exercises():
     exercises = list(collection.find({}, {"_id": 0, "exercise_name": 1}))
