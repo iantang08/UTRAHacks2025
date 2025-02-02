@@ -1,6 +1,6 @@
 import math
 import random
-from pyjoycon import JoyCon, get_L_id
+from pyjoycon import JoyCon, get_R_id
 import time
 import serial
 import aiohttp
@@ -9,10 +9,9 @@ import io
 from pydub import AudioSegment
 import simpleaudio as sa
 
-
 POLLING_INTERVAL = 150  
-TOLERANCE = 20          
-GYRO_SCALE = 100       
+TOLERANCE = 10
+GYRO_SCALE = 100
 
 VARIANCE_POWER = 1.5
 SCALE = 0.5
@@ -36,7 +35,7 @@ BASELINE_RANGE = 10.0
 arduino = serial.Serial('COM3', 9600, timeout=1)
 time.sleep(2) 
 
-joycon_id = get_L_id()
+joycon_id = get_R_id()
 joycon = JoyCon(*joycon_id)
 
 async def fetch_mp3(url):
@@ -145,11 +144,11 @@ print("- Press and hold UP to start recording or playing; release UP to stop.")
 while True:
     status = joycon.get_status()
     gyro = status['gyro']
-    buttons = status['buttons']['left']
+    buttons = status['buttons']['right']
 
-    up_button = buttons['up']
-    left_button = buttons['left']
-    down_button = buttons['down']
+    up_button = buttons['x']
+    left_button = buttons['y']
+    down_button = buttons['b']
 
     if left_button == 1:
         if not recording_mode and not play_mode:
