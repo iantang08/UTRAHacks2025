@@ -8,32 +8,33 @@ import asyncio
 import io
 from pydub import AudioSegment
 import simpleaudio as sa
+import concurrent.futures
 
-POLLING_INTERVAL = 150  
+POLLING_INTERVAL = 150
 TOLERANCE = 10
 GYRO_SCALE = 100
 
 VARIANCE_POWER = 1.5
 SCALE = 0.5
 
-HEART_RATE_MIN = 60.0     
-HEART_RATE_MAX = 180.0    
+HEART_RATE_MIN = 60.0
+HEART_RATE_MAX = 180.0
 
-BASE_GROWTH = 0.02                
-GROWTH_DECAY_INCREMENT = 0.0002   
-GROWTH_INDEX_MAX = 200           
+BASE_GROWTH = 0.02
+GROWTH_DECAY_INCREMENT = 0.0002
+GROWTH_INDEX_MAX = 200
 
 
-BASE_DECAY = 0.05        
-DECAY_INCREMENT = 0.0     
-DECAY_INDEX_MAX = 3      
+BASE_DECAY = 0.05
+DECAY_INCREMENT = 0.0
+DECAY_INDEX_MAX = 3
 
-DELTA_THRESHOLD = 5.0   
+DELTA_THRESHOLD = 5.0
 
 BASELINE_RANGE = 10.0
 
 arduino = serial.Serial('COM3', 9600, timeout=1)
-time.sleep(2) 
+time.sleep(2)
 
 joycon_id = get_R_id()
 joycon = JoyCon(*joycon_id)
@@ -48,21 +49,30 @@ async def fetch_mp3(url):
                 print(f"Failed to fetch MP3: {response.status}")
                 return None
 
+
 async def play_audio(url):
+    return
+
     """Fetch and play MP3 file asynchronously."""
-    mp3_data = await fetch_mp3(url)
-    if mp3_data is None:
-        return
-    
-    # Convert MP3 bytes to WAV format
-    audio = AudioSegment.from_mp3(io.BytesIO(mp3_data))
-    wav_data = io.BytesIO()
-    audio.export(wav_data, format="wav")
-    
-    # Play the audio
-    wave_obj = sa.WaveObject.from_wave_file(io.BytesIO(wav_data.getvalue()))
-    play_obj = wave_obj.play()
-    play_obj.wait_done()
+    try:
+        mp3_data = await fetch_mp3(url)
+        if mp3_data is None:
+            return
+
+        # Convert MP3 bytes to WAV format
+        audio = AudioSegment.from_mp3(io.BytesIO(mp3_data))
+        wav_data = io.BytesIO()
+        audio.export(wav_data, format="wav")
+
+        # Play the audio in a separate thread
+        wave_obj = sa.WaveObject.from_wave_file(io.BytesIO(wav_data.getvalue()))
+        play_obj = wave_obj.play()
+
+        loop = asyncio.get_event_loop()
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            await loop.run_in_executor(executor, play_obj.wait_done)
+    except Exception as e:
+        print(f"Error during audio playback: {e}")
 
 
 def calculate_distance(point1, point2):
@@ -86,7 +96,7 @@ def calculate_score(user_points, ideal_points):
     avg_penalty = total_penalty / min_length
 
     length_diff = abs(len(user_points) - len(ideal_points))
-    length_penalty = length_diff * 2  
+    length_penalty = length_diff * 2
 
     score = 100 - (avg_penalty * SCALE) - length_penalty
     return max(int(score), 0)
@@ -128,7 +138,7 @@ recording_mode = False
 play_mode = False
 
 baseline_hr = None
-baseline_active = True 
+baseline_active = True
 
 heart_rate = 0
 growth_index = 0
@@ -155,7 +165,7 @@ while True:
             print("Entering recording mode (ideal routine)...")
             recording_mode = True
             play_mode = False
-            time.sleep(0.5) 
+            time.sleep(0.5)
         elif recording_mode:
             print("Exiting recording mode...")
             recording_mode = False
@@ -170,14 +180,14 @@ while True:
         elif play_mode:
             print("Exiting play mode...")
             play_mode = False
-            time.sleep(0.5) 
+            time.sleep(0.5)
 
     if up_button == 1 and not active:
         if recording_mode:
             print("Starting routine recording...")
             points = []
             active = True
-            time.sleep(0.5)  
+            time.sleep(0.5)
 
         elif play_mode:
             print("Starting user attempt...")
@@ -191,7 +201,7 @@ while True:
             decay_index = 0
 
             heart_rate_history = []
-            time.sleep(0.5)  
+            time.sleep(0.5)
 
     if up_button == 0 and active:
         if recording_mode:
@@ -201,7 +211,7 @@ while True:
             active = False
             print("Routine saved!")
             print("Ideal routine:", ideal)
-            time.sleep(0.5)  
+            time.sleep(0.5)
 
         elif play_mode:
             print("Stopping user attempt...")
@@ -210,8 +220,8 @@ while True:
             print("Score:", score)
             asyncio.run(play_audio(f"http://34.169.141.219:5000/score/{score}"))
             distance = (score ** 2) / 400
+            print("Sending " + str(distance) + " command to Arduino.")
             arduino.write((str(score) + "\n").encode())
-            print("Sent " + str(distance) + " command to Arduino.")
 
             points = []
             active = False
@@ -229,7 +239,7 @@ while True:
             growth_index = 0
             decay_index = 0
 
-            time.sleep(0.5) 
+            time.sleep(0.5)
 
 
     if active:
