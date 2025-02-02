@@ -178,7 +178,7 @@ while True:
             print("User points:", points)
             print("Score:", score)
 
-            distance = (score ** 1.5) / 80
+            distance = (score ** 2) / 400
             arduino.write((str(score) + "\n").encode())
             print("Sent " + str(distance) + " command to Arduino.")
 
