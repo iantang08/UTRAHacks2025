@@ -162,7 +162,7 @@ def get_exercises():
 def statistics():
     # Create Stat objects for each user
     stats = [
-        Stat("John Doe", 1, (25, 36, 50), 75, (25, 35, 50)),
+        Stat("John Doe", 1, (25, 36, 50), 75, (25, 35, 75)),
         Stat("Jane Doe", 2, (28, 40, 52), 80, (25, 36, 50))
     ]
     

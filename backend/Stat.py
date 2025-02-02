@@ -11,14 +11,9 @@ class Stat:
 
     def calculate_consistency(self):
         # Calculate the Euclidean distance between data and ideal_data
-        distance = math.sqrt(
-            (self.data[0] - self.ideal_data[0])**2 +
-            (self.data[1] - self.ideal_data[1])**2 +
-            (self.data[2] - self.ideal_data[2])**2
-        )
-        
-        # If you want a consistency score (lower distance means more consistent):
-        consistency = 1 / (1 + distance)  # Normalize to 0-1 range
+        sum = self.data[0] + self.data[1] + self.data[2]
+        idealSum = self.ideal_data[0] + self.ideal_data[1] + self.ideal_data[2]
+        consistency = 100-(abs(sum-idealSum)/idealSum * 100)
         return consistency
 
     def add_heart_rate(self, heart_rate):
