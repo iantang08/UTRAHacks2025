@@ -1,12 +1,35 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from pymongo import MongoClient
 from bson.objectid import ObjectId  # For handling MongoDB ObjectId
+import sys
 import os
+
+# Add the parent directory to the sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend')))
+
+# Now import the Stat class from the backend folder
+from Stat import Stat
+
+# Initialize an empty dictionary to store heart rates for each user ID
+# Initialize user_heart_rates with sample data containing timestamps
+user_heart_rates = {
+    1: [
+        {'timestamp': 1609459200, 'heart_rate': 72},
+        {'timestamp': 1609459260, 'heart_rate': 75},
+        {'timestamp': 1609459320, 'heart_rate': 78},
+        # Add more entries as needed
+    ],
+    2: [
+        {'timestamp': 1609459200, 'heart_rate': 65},
+        {'timestamp': 1609459260, 'heart_rate': 68},
+        # Add more entries as needed
+    ]
+}
 
 app = Flask(__name__)
 
 # Load MongoDB Atlas URI from environment variables
-username = "dylanydai"
+username = "iantang9000"
 MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://" + username + ":iloveyordles123@fitness.n3yup.mongodb.net/?retryWrites=true&w=majority&appName=fitness")
 
 try:
@@ -85,10 +108,48 @@ def get_exercises():
 
 @app.route('/statistics')
 def statistics():
-    # Fetch statistics data from MongoDB
-    stats_data = list(collection.find())
-    # pass statistics data to template
-    return render_template('statistics.html', stats = stats_data)
+    stats = [
+        Stat("John Doe", 1, (25, 36, 50), 75, (25, 35, 50)),
+        Stat("Jane Doe", 2, (28, 40, 52), 80, (25, 36, 50))
+    ]
+    
+    # Calculate consistency for each stat and pass to template
+    for stat in stats:
+        stat.consistency = stat.calculate_consistency()
+    
+    return render_template("statistics.html", stats=stats)
+
+def calculate_average(heart_rate_list):
+    return sum(heart_rate_list) / len(heart_rate_list)
+
+@app.route('/update_heart_rate', methods=['POST'])
+def update_heart_rate():
+    data = request.get_json()
+
+    user_id = data['id']
+    heart_rate = data['heart_rate']
+
+    # If the user doesn't have a heart rate list, create one
+    if user_id not in user_heart_rates:
+        user_heart_rates[user_id] = []
+
+    # Add the new heart rate to the list
+    user_heart_rates[user_id].append(heart_rate)
+
+    # If the list exceeds 10, pop the first (oldest) heart rate
+    if len(user_heart_rates[user_id]) > 10:
+        user_heart_rates[user_id].pop(0)
+
+    # Calculate the average heart rate if we have 10 or more entries
+    average_heart_rate = calculate_average(user_heart_rates[user_id])
+
+    # Store the average heart rate (you could save it to a database)
+    user_heart_rates[user_id].append(average_heart_rate)
+
+    return jsonify({
+        'message': 'Heart rate updated successfully',
+        'average_heart_rate': average_heart_rate
+    })
 
 if __name__ == '__main__':
     app.run(debug=True)

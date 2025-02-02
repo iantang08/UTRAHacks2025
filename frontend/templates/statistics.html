@@ -8,22 +8,32 @@
     <table border="1">
         <thead>
             <tr>
-                <th>Category</th>
-                <th>Value</th>
+                <th>Name</th>
+                <th>ID</th>
+                <th>Data</th>
+                <th>Heart Rate</th>
+                <th>Consistency</th>  <!-- New Column for Consistency -->
+                <th>Heart Rate History</th>
             </tr>
         </thead>
         <tbody>
             {% for stat in stats %}
                 <tr>
-                    <td>{{ stat.category }}</td>
-                    <td>{{ stat.value }}</td>
+                    <td>{{ stat.name }}</td> <!-- Name -->
+                    <td>{{ stat.id }}</td> <!-- ID -->
+                    <td>{{ stat.data }}</td> <!-- Data -->
+                    <td>{{ stat.heartrate }}</td> <!-- Heart Rate -->
+                    <td>{{ stat.consistency|round(2) }}</td> <!-- Consistency Score -->
+                    <td>{{ stat.heart_rate_history }}</td>
                 </tr>
             {% else %}
                 <tr>
-                    <td colspan="2">No statistics available</td>
+                    <td colspan="5">No statistics available</td>
                 </tr>
             {% endfor %}
         </tbody>
     </table>
-    <button onclick="window.location.href='{{ url_for('home') }}'">Back to Home</button>
+    
+    
+    
 {% endblock %}
