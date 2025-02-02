@@ -1,8 +1,10 @@
 from flask import Flask, send_file
 from dotenv import load_dotenv
 from openai import OpenAI
-import cohere
 import os
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, SystemMessage
+import cohere
 import io
 
 load_dotenv()
@@ -13,7 +15,7 @@ OPENAI_API_KEY = os.environ['OPENAI_API_KEY']
 COHERE_MODEL = "command-r-plus-08-2024"
 OPENAI_TTS_VOICE = "nova"
 
-co = cohere.ClientV2(api_key=COHERE_API_KEY)
+oa_langchain = ChatOpenAI(model="gpt-4o-mini")
 oa = OpenAI(api_key=OPENAI_API_KEY)
 
 app = Flask(__name__)
@@ -24,20 +26,17 @@ def hello():
 
 @app.route("/goodjob")
 def goodjob():
-    response = co.chat(
-        model=COHERE_MODEL,
-        messages=[
-        {
-            "role": "user",
-            "content": "Write a short, informal, positive sentence congratulating someone on doing a good job",
-        }
-    ],
-    )
+    messages = [
+    SystemMessage("Respond to the following instructions exactly as they are stated."),
+    HumanMessage("Provide me with a short, informal, and positive sentence congratulating someone on doing a good job."),
+    ]
+
+    response = oa_langchain.invoke(messages)
 
     audio_response = oa.audio.speech.create(
         model="tts-1",
         voice=OPENAI_TTS_VOICE,
-        input=response.message.content[0].text
+        input=response.content
     )
     
     audio_buffer = io.BytesIO()
@@ -51,20 +50,18 @@ def goodjob():
 
 @app.route("/badjob")
 def better_next_time():
-    response = co.chat(
-        model=COHERE_MODEL,
-        messages=[
-        {
-            "role": "user",
-            "content": "Write a short, informal sentence telling the user that what they're doing isn't quite right, and to try again",
-        }
-    ],
-    )
+    
+    messages = [
+    SystemMessage("Respond to the following instructions exactly as they are stated."),
+    HumanMessage("Write a short, informal sentence telling the user that what they're doing isn't quite right, and to try again."),
+    ]
+
+    response = oa_langchain.invoke(messages)
 
     audio_response = oa.audio.speech.create(
         model="tts-1",
         voice=OPENAI_TTS_VOICE,
-        input=response.message.content[0].text
+        input=response.content
     )
     
     # Create a BytesIO buffer to hold the audio data
