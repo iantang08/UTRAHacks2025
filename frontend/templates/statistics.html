@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+
+{% block title %}Statistics{% endblock %}
+
+{% block content %}
+    <h1>Statistics Overview</h1>
+
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for stat in stats %}
+                <tr>
+                    <td>{{ stat.category }}</td>
+                    <td>{{ stat.value }}</td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="2">No statistics available</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
