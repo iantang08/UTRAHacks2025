@@ -7,6 +7,7 @@ from bson.objectid import ObjectId  # For handling MongoDB ObjectId
 import sys
 import os
 
+STR_LENGTH_LIMIT = 30
 # Add the parent directory to the sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend')))
 
@@ -39,6 +40,7 @@ try:
     client = MongoClient(MONGO_URI)  # Connect to MongoDB Atlas
     db = client["fitness_db"]  # Database name
     collection = db["exercises"]  # Collection name
+    people = db["people"]  # Collection name
     print("✅ Connected to MongoDB Atlas successfully")
 except Exception as e:
     print(f"❌ Error connecting to MongoDB Atlas: {e}")
@@ -55,7 +57,7 @@ def tutorial():
 def home():
     if request.method == 'POST':
         exercise_name = request.form.get('exercise_name').strip()
-        if exercise_name and len(exercise_name) <= 20:
+        if exercise_name and len(exercise_name) <= STR_LENGTH_LIMIT:
             # Prevent duplicate entries
             existing_exercise = collection.find_one({"exercise_name": exercise_name})
             if not existing_exercise:
@@ -94,7 +96,7 @@ def edit_script(exercise_name):
     def generate():
         # Run the Python script
         process = subprocess.Popen(
-            ['python', '../backend/edit.py'],
+            ['python', '../backend/edit.py', ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True
@@ -114,28 +116,26 @@ def edit_script(exercise_name):
 
     return Response(generate(), mimetype='text/event-stream')
 
+def generate():
+    # Run the Python script
+    process = subprocess.Popen(
+        ['python', '../backend/edit.py'],
+        stdout=subprocess.PIPE,  # Capture stdout
+        universal_newlines=True  # Ensure text mode
+    )
+
+    # Stream the output line by line
+    for line in process.stdout:
+        yield f"data: {line}\n\n"
+
+    # Handle errors
+    for line in process.stderr:
+        yield "error"
+
 # run script!!!
 @app.route('/run-script/<exercise_name>')
 def run_script(exercise_name):
-    def generate():
-        # Run the Python script
-        process = subprocess.Popen(
-            ['python', '../backend/run.py'],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
-        )
-
-        # Stream the output line by line
-        for line in process.stdout:
-            print(line)
-            yield f"data: {line}\n\n"
-
-        # Handle errors
-        for line in process.stderr:
-            yield "error"
-
-    return Response(generate(), mimetype='text/event-stream')
+    return Response(generate(exercise_name), mimetype='text/event-stream')
 
 # ✅ New API Endpoint to Upload Data
 @app.route('/upload', methods=['POST'])
@@ -162,7 +162,7 @@ def get_exercises():
 def statistics():
     # Create Stat objects for each user
     stats = [
-        Stat("John Doe", 1, (25, 36, 50), 75, (25, 35, 50)),
+        Stat("John Doe", 1, (25, 36, 50), 75, (25, 35, 75)),
         Stat("Jane Doe", 2, (28, 40, 52), 80, (25, 36, 50))
     ]
     
@@ -233,4 +233,4 @@ def get_heart_rate_history(user_id):
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(threaded=True)
