@@ -29,7 +29,7 @@ user_heart_rates = {
 app = Flask(__name__)
 
 # Load MongoDB Atlas URI from environment variables
-username = "tophu"
+username = "iantang9000"
 MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://" + username + ":iloveyordles123@fitness.n3yup.mongodb.net/?retryWrites=true&w=majority&appName=fitness")
 
 try:
