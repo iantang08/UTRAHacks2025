@@ -24,11 +24,35 @@ app = Flask(__name__)
 def hello():
     return "<h1>The endpoint is working</h1>"
 
+@app.route("/score/<current_score>")
+def score(current_score):
+    messages = [
+    SystemMessage("Respond to the following instructions exactly as they are stated."),
+    HumanMessage(f"Provide me with a short sentence telling someone they currently have {current_score} points."),
+    ]
+
+    response = oa_langchain.invoke(messages)
+
+    audio_response = oa.audio.speech.create(
+        model="tts-1",
+        voice=OPENAI_TTS_VOICE,
+        input=response.content
+    )
+    
+    audio_buffer = io.BytesIO()
+    
+    for chunk in audio_response.iter_bytes():
+        audio_buffer.write(chunk)
+    
+    audio_buffer.seek(0)
+
+    return send_file(audio_buffer, mimetype="audio/mpeg", as_attachment=True, download_name="output.mp3")
+
 @app.route("/goodjob")
 def goodjob():
     messages = [
     SystemMessage("Respond to the following instructions exactly as they are stated."),
-    HumanMessage("Provide me with a short, informal, and positive sentence congratulating someone on doing a good job."),
+    HumanMessage("Provide me with a short, informal, and positive sentence telling someone they are doing a good job."),
     ]
 
     response = oa_langchain.invoke(messages)
