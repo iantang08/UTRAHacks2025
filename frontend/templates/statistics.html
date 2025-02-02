@@ -1,90 +1,94 @@
 {% extends "layout.html" %}
 {% block content %}
 <title>Heart Rate Statistics</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <h1>Heart Rate Statistics</h1>
+<h1>Heart Rate Statistics</h1>
 
-    {% for user_id, heart_rates in user_heart_rates.items() %}
-        <h2>User {{ user_id }} - Average Heart Rate: 
-            {{ (heart_rates | map(attribute='heart_rate') | sum) / heart_rates | length }}
-        </h2>
+{% for user_id, heart_rates in user_heart_rates.items() %}
+    <h2>User {{ user_id }} - Average Heart Rate: 
+        {{ (heart_rates | map(attribute='heart_rate') | sum) / heart_rates | length }}
+    </h2>
 
-        <canvas id="chart-{{ user_id }}" width="400" height="200"></canvas>
+    <!-- Display consistency value for the user -->
+    <p>Consistency: {{ user_consistency[user_id] | round(2) }}</p>  <!-- Assuming user_consistency is passed from backend -->
 
-        <script>
-            document.addEventListener("DOMContentLoaded", function() {
-                var ctx = document.getElementById('chart-{{ user_id }}').getContext('2d');
+    <canvas id="chart-{{ user_id }}" width="400" height="200"></canvas>
 
-                var timestamps = {{ heart_rates | map(attribute='timestamp') | list | tojson }};
-                var heartRates = {{ heart_rates | map(attribute='heart_rate') | list | tojson }};
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var ctx = document.getElementById('chart-{{ user_id }}').getContext('2d');
 
-                // Function to calculate the linear regression (line of best fit)
-                function linearRegression(x, y) {
-                    let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
-                    let n = x.length;
+            var timestamps = {{ heart_rates | map(attribute='timestamp') | list | tojson }};
+            var heartRates = {{ heart_rates | map(attribute='heart_rate') | list | tojson }};
 
-                    for (let i = 0; i < n; i++) {
-                        sumX += x[i];
-                        sumY += y[i];
-                        sumXY += x[i] * y[i];
-                        sumXX += x[i] * x[i];
-                    }
+            // Function to calculate the linear regression (line of best fit)
+            function linearRegression(x, y) {
+                let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+                let n = x.length;
 
-                    let slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-                    let intercept = (sumY - slope * sumX) / n;
-
-                    // Generate trendline data
-                    let trendlineData = x.map(val => slope * val + intercept);
-                    return trendlineData;
+                for (let i = 0; i < n; i++) {
+                    sumX += x[i];
+                    sumY += y[i];
+                    sumXY += x[i] * y[i];
+                    sumXX += x[i] * x[i];
                 }
 
-                var trendlineData = linearRegression(timestamps, heartRates);
+                let slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+                let intercept = (sumY - slope * sumX) / n;
 
-                var chart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: timestamps,
-                        datasets: [
-                            {
-                                label: 'Heart Rate',
-                                data: heartRates,
-                                borderColor: 'rgb(255, 99, 132)',
-                                backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                                fill: false,
-                                tension: 0.1
-                            },
-                            {
-                                label: 'Trend Line',
-                                data: trendlineData,
-                                borderColor: 'rgb(54, 162, 235)',
-                                borderWidth: 2,
-                                fill: false,
-                                borderDash: [5, 5]  // Dashed line for better visibility
+                // Generate trendline data
+                let trendlineData = x.map(val => slope * val + intercept);
+                return trendlineData;
+            }
+
+            var trendlineData = linearRegression(timestamps, heartRates);
+
+            var chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timestamps,
+                    datasets: [
+                        {
+                            label: 'Heart Rate',
+                            data: heartRates,
+                            borderColor: 'rgb(255, 99, 132)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            fill: false,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Trend Line',
+                            data: trendlineData,
+                            borderColor: 'rgb(54, 162, 235)',
+                            borderWidth: 2,
+                            fill: false,
+                            borderDash: [5, 5]  // Dashed line for better visibility
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time (Timestamp)'
                             }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        scales: {
-                            x: {
-                                title: {
-                                    display: true,
-                                    text: 'Time (Timestamp)'
-                                }
-                            },
-                            y: {
-                                title: {
-                                    display: true,
-                                    text: 'Heart Rate (BPM)'
-                                }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Heart Rate (BPM)'
                             }
                         }
                     }
-                });
+                }
             });
-        </script>
+        });
+    </script>
+    
 
-    {% endfor %}
-    {% endblock %}
-
+{% endfor %}
+<button onclick="window.location.href='{{ url_for('home') }}'">Back to Home</button>
+{% endblock %}
