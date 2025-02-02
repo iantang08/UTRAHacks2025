@@ -16,7 +16,7 @@ from Stat import Stat
 # Initialize an empty dictionary to store heart rates for each user ID
 # Initialize user_heart_rates with sample data containing timestamps
 user_heart_rates = {
-    1: [
+    1: [    
         {'timestamp': 1609459200%1000, 'heart_rate': 10},
         {'timestamp': 1609459260%1000, 'heart_rate': 75},
         {'timestamp': 1609459320%1000, 'heart_rate': 80},
@@ -160,16 +160,20 @@ def get_exercises():
 
 @app.route('/statistics')
 def statistics():
+    # Create Stat objects for each user
     stats = [
         Stat("John Doe", 1, (25, 36, 50), 75, (25, 35, 50)),
         Stat("Jane Doe", 2, (28, 40, 52), 80, (25, 36, 50))
     ]
-
+    
+    # Calculate consistency for each user
+    user_consistency = {}
     for stat in stats:
         stat.consistency = stat.calculate_consistency()
+        user_consistency[stat.id] = stat.consistency
 
-    # Pass user heart rates to the template
-    return render_template("statistics.html", stats=stats, user_heart_rates=user_heart_rates)
+    # Pass user heart rates and consistency to the template
+    return render_template("statistics.html", stats=stats, user_heart_rates=user_heart_rates, user_consistency=user_consistency)
 
 def calculate_average(heart_rate_list):
     return sum(heart_rate_list) / len(heart_rate_list)
