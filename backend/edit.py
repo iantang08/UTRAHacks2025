@@ -1,5 +1,11 @@
 import math
 import random
+from flask import Flask, jsonify
+from pyjoycon import JoyCon, get_L_id
+import time
+import serial
+import os
+
 from pyjoycon import JoyCon, get_R_id
 import time
 import serial
@@ -135,7 +141,8 @@ ideal = []
 points = []
 active = False
 recording_mode = False
-play_mode = False
+play_mode = True
+
 
 baseline_hr = None
 baseline_active = True
@@ -154,6 +161,9 @@ print("- Press and hold UP to start recording or playing; release UP to stop.")
 while True:
     status = joycon.get_status()
     gyro = status['gyro']
+
+    buttons = status['buttons']['left']
+    play_mode = True
     buttons = status['buttons']['right']
 
     up_button = buttons['x']

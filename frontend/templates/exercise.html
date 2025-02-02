@@ -9,32 +9,40 @@
 
     <!-- Add JavaScript to fetch the output when the page loads -->
     <script>
-        // Create an EventSource to listen for updates from the /run-script route
-        const exerciseName = "{{ exercise_name }}";  // Pass the exercise_name to JavaScript
-        const eventSource = new EventSource("/run-script/" + exerciseName);
+        
+const exerciseName = "{{ exercise_name }}";
+const eventSource = new EventSource("/run-script/" + exerciseName);
 
-        eventSource.onmessage = function(event) {
-            document.getElementById("cur").innerText = "Received: " + event.data;
-        };
+eventSource.onmessage = function(event) {
+    console.log("Received:", event.data);
+    document.getElementById("cur").innerText = event.data;
+};
 
-        // Handle errors
-        eventSource.onerror = function(event) {
-            console.error("EventSource failed.");
-            document.getElementById('cur').innerText = "Failed to connect";
-            eventSource.close();
-        };
+// Handle errors properly
+eventSource.onerror = function(event) {
+    console.error("EventSource failed:", event);
+    document.getElementById('cur').innerText = "Failed to connect to server.";
+    eventSource.close();  // Close connection on failure
+};
 
-        // Function to trigger the run-script action
-        function startExercise() {
-            fetch("/start-exercise", { method: 'POST' })
-                .then(response => response.text())
-                .then(data => {
-                    console.log("Exercise started:", data);
-                })
-                .catch(error => {
-                    console.error("Error starting exercise:", error);
-                });
-        }
+function startExercise() {
+    fetch("/start-exercise", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ exercise_name: exerciseName })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("Exercise started:", data);
+        document.getElementById("cur").innerText = "Exercise started!";
+    })
+    .catch(error => {
+        console.error("Error starting exercise:", error);
+        document.getElementById("cur").innerText = "Error starting exercise.";
+    });
+}
+
+
     </script>
 
     <!-- Button to start the exercise -->

@@ -28,7 +28,7 @@ def hello():
 def score(current_score):
     messages = [
     SystemMessage("Respond to the following instructions exactly as they are stated."),
-    HumanMessage(f"Provide me with a short sentence telling someone they currently have {current_score} points."),
+    HumanMessage(f"Provide me with a short sentence telling someone they currently have {current_score} points, then say something motivational. If the current score is below 60, that's considered a low score, and say that the user can do better. Otherwise, say that they're doing a great job."),
     ]
 
     response = oa_langchain.invoke(messages)
