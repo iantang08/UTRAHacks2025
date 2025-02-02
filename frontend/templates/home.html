@@ -1,17 +1,22 @@
 {% extends "layout.html" %}
+
 {% block content %}
     <h1>Home</h1>
+
+    <!-- Form to add exercises -->
     <form method="POST">
         <input type="text" name="exercise_name" placeholder="Enter exercise name" required>
         <button type="submit">Add Exercise</button>
     </form>
+
+    <!-- Display stored exercises -->
     <ul>
         {% for exercise in exercises %}
             <li>
-                <span>{{ exercise }}</span>
+                <span>{{ exercise.exercise_name }}</span>  <!-- Fetching from MongoDB -->
                 <div>
-                    <a href="{{ url_for('remove_exercise', exercise_name=exercise) }}">Remove</a>
-                    <a href="{{ url_for('exercise', exercise_name=exercise) }}">Start</a>
+                    <a href="{{ url_for('remove_exercise', exercise_id=exercise._id) }}">Remove</a>
+                    <a href="{{ url_for('exercise', exercise_name=exercise.exercise_name) }}">Start</a>
                 </div>
             </li>
         {% endfor %}
