@@ -1,12 +1,38 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+import ast
+import subprocess
+
+from flask import Flask, render_template, request, redirect, url_for, jsonify, Response
 from pymongo import MongoClient
 from bson.objectid import ObjectId  # For handling MongoDB ObjectId
+import sys
 import os
+
+# Add the parent directory to the sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend')))
+
+# Now import the Stat class from the backend folder
+from Stat import Stat
+
+# Initialize an empty dictionary to store heart rates for each user ID
+# Initialize user_heart_rates with sample data containing timestamps
+user_heart_rates = {
+    1: [
+        {'timestamp': 1609459200%1000, 'heart_rate': 10},
+        {'timestamp': 1609459260%1000, 'heart_rate': 75},
+        {'timestamp': 1609459320%1000, 'heart_rate': 80},
+        # Add more entries as needed
+    ],
+    2: [
+        {'timestamp': 1609459200%1000, 'heart_rate': 65},
+        {'timestamp': 1609459260%1000, 'heart_rate': 68},
+        # Add more entries as needed
+    ]
+}
 
 app = Flask(__name__)
 
 # Load MongoDB Atlas URI from environment variables
-username = "dylanydai"
+username = "iantang9000"
 MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://" + username + ":iloveyordles123@fitness.n3yup.mongodb.net/?retryWrites=true&w=majority&appName=fitness")
 
 try:
@@ -62,6 +88,55 @@ def edit(exercise_name):
     else:
         return render_template('error.html')
 
+# edit script!!!
+@app.route('/edit-script/<exercise_name>')
+def edit_script(exercise_name):
+    def generate():
+        # Run the Python script
+        process = subprocess.Popen(
+            ['python', '../backend/edit.py'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+
+        # Stream the output line by line
+        for line in process.stdout:
+            tuple_list = eval(line)
+            collection.update_one(
+                {"exercise_name": exercise_name},  # Filter to find the document
+                {"$set": {"moves": tuple_list}})
+            yield f"data: {line}\n\n"  # SSE format
+
+        # Handle errors
+        for line in process.stderr:
+            yield "error"
+
+    return Response(generate(), mimetype='text/event-stream')
+
+# run script!!!
+@app.route('/run-script/<exercise_name>')
+def run_script(exercise_name):
+    def generate():
+        # Run the Python script
+        process = subprocess.Popen(
+            ['python', '../backend/run.py'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+
+        # Stream the output line by line
+        for line in process.stdout:
+            print(line)
+            yield f"data: {line}\n\n"
+
+        # Handle errors
+        for line in process.stderr:
+            yield "error"
+
+    return Response(generate(), mimetype='text/event-stream')
+
 # ✅ New API Endpoint to Upload Data
 @app.route('/upload', methods=['POST'])
 def upload():
@@ -85,10 +160,73 @@ def get_exercises():
 
 @app.route('/statistics')
 def statistics():
-    # Fetch statistics data from MongoDB
-    stats_data = list(collection.find())
-    # pass statistics data to template
-    return render_template('statistics.html', stats = stats_data)
+    stats = [
+        Stat("John Doe", 1, (25, 36, 50), 75, (25, 35, 50)),
+        Stat("Jane Doe", 2, (28, 40, 52), 80, (25, 36, 50))
+    ]
+
+    for stat in stats:
+        stat.consistency = stat.calculate_consistency()
+
+    # Pass user heart rates to the template
+    return render_template("statistics.html", stats=stats, user_heart_rates=user_heart_rates)
+
+def calculate_average(heart_rate_list):
+    return sum(heart_rate_list) / len(heart_rate_list)
+
+@app.route('/update_heart_rate', methods=['POST'])
+def update_heart_rate():
+    data = request.get_json()
+    user_id = data.get('id')
+    heart_rate = data.get('heart_rate')
+    timestamp = data.get('timestamp')  # Expecting timestamp input
+
+    if not user_id or not heart_rate or not timestamp:
+        return jsonify({"error": "Invalid input"}), 400
+
+    try:
+        # Insert heart rate data into MongoDB
+        db.heart_rates.insert_one({
+            "user_id": user_id,
+            "heart_rate": heart_rate,
+            "timestamp": timestamp
+        })
+
+        # Calculate average heart rate for this user
+        user_records = list(db.heart_rates.find({"user_id": user_id}))
+        heart_rates = [record["heart_rate"] for record in user_records]
+        average_heart_rate = sum(heart_rates) / len(heart_rates)
+
+        return jsonify({
+            "message": "Heart rate updated successfully",
+            "average_heart_rate": average_heart_rate
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/average_heart_rates', methods=['GET'])
+def get_average_heart_rates():
+    try:
+        users = db.heart_rates.distinct("user_id")  # Get unique user IDs
+        user_averages = {}
+
+        for user_id in users:
+            user_records = list(db.heart_rates.find({"user_id": user_id}))
+            heart_rates = [record["heart_rate"] for record in user_records]
+            user_averages[user_id] = sum(heart_rates) / len(heart_rates)
+
+        return jsonify(user_averages)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/heart_rate_history/<int:user_id>', methods=['GET'])
+def get_heart_rate_history(user_id):
+    try:
+        user_records = list(db.heart_rates.find({"user_id": user_id}, {"_id": 0, "heart_rate": 1, "timestamp": 1}))
+        return jsonify(user_records)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
