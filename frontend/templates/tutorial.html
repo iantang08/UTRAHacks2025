@@ -1,0 +1,7 @@
+{% extends "layout.html" %}
+{% block content %}
+    <h1>Tutorial</h1>
+    <p>This is a sample tutorial text.</p>
+    <img src="{{ url_for('static', filename='images/sample.jpg') }}" alt="Sample Image">
+    <button onclick="window.location.href='{{ url_for('home') }}'">START</button>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "layout.html" %}
+{% block content %}
+    <h1>Home</h1>
+    <form method="POST">
+        <input type="text" name="exercise_name" placeholder="Enter exercise name" required>
+        <button type="submit">Add Exercise</button>
+    </form>
+    <ul>
+        {% for exercise in exercises %}
+            <li>
+                {{ exercise }}
+                <a href="{{ url_for('remove_exercise', exercise_name=exercise) }}">Remove</a>
+                <a href="{{ url_for('exercise', exercise_name=exercise) }}">Start</a>
+            </li>
+        {% endfor %}
+    </ul>
+{% endblock %}
