@@ -165,18 +165,30 @@ while True:
     down_button = buttons['down']
 
     # --- Enter recording mode (left button) ---
-    if left_button == 1 and not recording_mode and not play_mode:
-        print("Entering recording mode (ideal routine)...")
-        recording_mode = True
-        play_mode = False
-        time.sleep(0.5)  # debounce
+    if left_button == 1:
+        if not recording_mode and not play_mode:
+            print("Entering recording mode (ideal routine)...")
+            recording_mode = True
+            play_mode = False
+            time.sleep(0.5)  # debounce
+        elif recording_mode:
+            print("Exiting recording mode...")
+            recording_mode = False
+            time.sleep(0.5)
 
     # --- Enter play mode (down button) ---
-    if down_button == 1 and not play_mode and not recording_mode:
-        print("Entering play mode (user attempt)...")
-        play_mode = True
-        recording_mode = False
-        time.sleep(0.5)  # debounce
+    if down_button == 1:
+        if not play_mode and not recording_mode:
+            print("Entering play mode (user attempt)...")
+            play_mode = True
+            recording_mode = False
+            time.sleep(0.5)
+        elif play_mode:
+            print("Exiting play mode...")
+            play_mode = False
+            # recording_mode = False
+            time.sleep(0.5)  # debounce
+
 
     # --- Start recording or playing (hold up button) ---
     if up_button == 1 and not active:
@@ -194,7 +206,7 @@ while True:
             # Pick a random baseline between 70.0 and 80.0
             baseline_hr = random.uniform(70.0, 80.0)
             heart_rate = baseline_hr
-            baseline_active = True
+            # baseline_active = True
 
             # Reset dynamic indexes
             growth_index = 0
@@ -210,7 +222,7 @@ while True:
             ideal = points.copy()
             points = []
             active = False
-            recording_mode = False
+            # recording_mode = False
             print("Routine saved!")
             print("Ideal routine:", ideal)
             time.sleep(0.5)  # debounce
@@ -223,7 +235,7 @@ while True:
 
             points = []
             active = False
-            play_mode = False
+            # play_mode = False
 
             # Compute average heart rate
             if heart_rate_history:
