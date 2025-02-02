@@ -6,7 +6,8 @@ import os
 app = Flask(__name__)
 
 # Load MongoDB Atlas URI from environment variables
-MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://<user>:<pass>@fitness.n3yup.mongodb.net/?retryWrites=true&w=majority&appName=fitness")
+username = "dylanydai"
+MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://" + username + ":iloveyordles123@fitness.n3yup.mongodb.net/?retryWrites=true&w=majority&appName=fitness")
 
 try:
     client = MongoClient(MONGO_URI)  # Connect to MongoDB Atlas
@@ -28,14 +29,14 @@ def tutorial():
 def home():
     if request.method == 'POST':
         exercise_name = request.form.get('exercise_name').strip()
-        if exercise_name:
+        if exercise_name and len(exercise_name) <= 20:
             # Prevent duplicate entries
             existing_exercise = collection.find_one({"exercise_name": exercise_name})
             if not existing_exercise:
-                collection.insert_one({"exercise_name": exercise_name})  # Store in MongoDB
+                collection.insert_one({"exercise_name": exercise_name, "moves": []})  # Store in MongoDB
 
     # Retrieve all exercises
-    exercises = list(collection.find({}, {"_id": 1, "exercise_name": 1}))  # Include MongoDB _id
+    exercises = list(collection.find({}, {"exercise_name": 1, "moves": 1}))  # Include MongoDB _id
     
     return render_template('home.html', exercises=exercises)
 
@@ -49,7 +50,17 @@ def remove_exercise(exercise_id):
 
 @app.route('/exercise/<exercise_name>')
 def exercise(exercise_name):
-    return render_template('exercise.html', exercise_name=exercise_name)
+    if collection.find_one({"exercise_name": exercise_name}):
+        return render_template('exercise.html', exercise_name=exercise_name)
+    else:
+        return render_template('error.html')
+
+@app.route('/edit/<exercise_name>')
+def edit(exercise_name):
+    if collection.find_one({"exercise_name": exercise_name}):
+        return render_template('edit.html', exercise_name=exercise_name)
+    else:
+        return render_template('error.html')
 
 # ✅ New API Endpoint to Upload Data
 @app.route('/upload', methods=['POST'])
@@ -69,8 +80,15 @@ def upload():
 # ✅ API Endpoint to Get All Exercises (Testing)
 @app.route('/api/exercises', methods=['GET'])
 def get_exercises():
-    exercises = list(collection.find({}, {"_id": 0, "exercise_name": 1}))
+    exercises = list(collection.find({}, {"exercise_name": 1}))
     return jsonify(exercises)
+
+@app.route('/statistics')
+def statistics():
+    # Fetch statistics data from MongoDB
+    stats_data = list(collection.find())
+    # pass statistics data to template
+    return render_template('statistics.html', stats = stats_data)
 
 if __name__ == '__main__':
     app.run(debug=True)
