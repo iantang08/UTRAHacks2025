@@ -181,9 +181,6 @@ while True:
             if score > 70:
                 arduino.write(b"FORWARD\n")
                 print("Sent FORWARD command to Arduino.")
-            else:
-                arduino.write(b"BACKWARD\n")
-                print("Sent BACKWARD command to Arduino.")  
 
             points = []
             active = False
