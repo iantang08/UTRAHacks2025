@@ -178,9 +178,9 @@ while True:
             print("User points:", points)
             print("Score:", score)
 
-            if score > 70:
-                arduino.write(b"FORWARD\n")
-                print("Sent FORWARD command to Arduino.")
+            distance = (score ** 1.5) / 80
+            arduino.write((str(score) + "\n").encode())
+            print("Sent " + str(distance) + " command to Arduino.")
 
             points = []
             active = False

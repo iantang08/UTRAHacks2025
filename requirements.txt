@@ -44,6 +44,7 @@ propcache==0.2.1
 pydantic==2.10.6
 pydantic_core==2.27.2
 pymongo==4.11
+pyserial==3.5
 python-dotenv==1.0.1
 PyYAML==6.0.2
 regex==2024.11.6
