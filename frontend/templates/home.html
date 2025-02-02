@@ -18,9 +18,9 @@
                     <a href="{{ url_for('remove_exercise', exercise_id=exercise._id) }}">Remove</a>
                     <a href="{{ url_for('edit', exercise_name=exercise.exercise_name) }}">Edit</a>
                     <a href="{{ url_for('exercise', exercise_name=exercise.exercise_name) }}">Start</a>
-                    <a href="{{ url_for('statistics')}}"> Stats</a>
                 </div>
             </li>
         {% endfor %}
+        <button onclick="window.location.href='{{ url_for('statistics') }}'">View Statistics</button>
     </ul>
 {% endblock %}

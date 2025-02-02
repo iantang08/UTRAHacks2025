@@ -3,7 +3,7 @@ import random
 from pyjoycon import JoyCon, get_L_id, get_R_id
 import time
 from pymongo import MongoClient
-from flask import Flask, request
+from flask import Flask, jsonify, request
 from bson.objectid import ObjectId
 import os
 
@@ -109,3 +109,9 @@ def home():
     host = request.host
     exercise_name = host[host.rfind('/'):]
     elm = collection
+
+@app.route('/start-exercise', methods=['POST'])
+def start_exercise():
+    with open("play_mode.flag", "w") as f:
+        f.write("1")
+    return jsonify({"message": "Exercise started"}), 200

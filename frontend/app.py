@@ -135,8 +135,13 @@ def generate():
 # run script!!!
 @app.route('/run-script/<exercise_name>')
 def run_script(exercise_name):
-    return Response(generate(exercise_name), mimetype='text/event-stream')
+    def generate():
+        # Simulate sending real-time updates about the exercise (e.g., heart rate, progress)
+        for i in range(10):  # Simulating 10 updates
+            yield f"data: {i}\n\n"
+            time.sleep(1)  # Simulate delay between updates
 
+    return Response(generate(), mimetype='text/event-stream')
 # ✅ New API Endpoint to Upload Data
 @app.route('/upload', methods=['POST'])
 def upload():
@@ -231,6 +236,18 @@ def get_heart_rate_history(user_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/start-exercise', methods=['POST'])
+def start_exercise():
+    exercise_name = request.json.get('exercise_name')
+    if not exercise_name:
+        return jsonify({"error": "No exercise name provided"}), 400  
 
+    print(f"Starting exercise: {exercise_name}")
+
+    # Create a flag file
+    with open("../backend/start_exercise_flag.txt", "w") as f:
+        f.write("1")
+
+    return jsonify({"message": "Exercise started"}), 200  
 if __name__ == '__main__':
     app.run(threaded=True)

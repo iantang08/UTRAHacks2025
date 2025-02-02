@@ -1,9 +1,18 @@
 import math
 import random
+from flask import Flask, jsonify
 from pyjoycon import JoyCon, get_L_id
 import time
 import serial
+import os
 
+FLAG_FILE = "start_exercise_flag.txt"
+
+# Check if the flag file exists and set play_mode accordingly
+play_mode = os.path.exists(FLAG_FILE)
+
+if play_mode:
+    print("Play mode activated.")
 
 POLLING_INTERVAL = 150  
 TOLERANCE = 20          
@@ -94,7 +103,8 @@ ideal = []
 points = []
 active = False
 recording_mode = False
-play_mode = False
+play_mode = os.path.exists(FLAG_FILE)
+
 
 baseline_hr = None
 baseline_active = True 
@@ -114,6 +124,7 @@ while True:
     status = joycon.get_status()
     gyro = status['gyro']
     buttons = status['buttons']['left']
+    play_mode = os.path.exists(FLAG_FILE)
 
     up_button = buttons['up']
     left_button = buttons['left']
