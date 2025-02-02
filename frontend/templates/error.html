@@ -1,0 +1,5 @@
+{% extends "layout.html" %}
+{% block content %}
+    <h1>{{ "Exercise not found :-(" }}</h1>
+    <button onclick="window.location.href='{{ url_for('home') }}'">Back to Home</button>
+{% endblock %}
