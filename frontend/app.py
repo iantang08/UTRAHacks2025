@@ -13,7 +13,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'b
 
 # Now import the Stat class from the backend folder
 from Stat import Stat
-
 # Initialize an empty dictionary to store heart rates for each user ID
 # Initialize user_heart_rates with sample data containing timestamps
 user_heart_rates = {
@@ -194,17 +193,17 @@ def update_heart_rate():
         return jsonify({"error": "Invalid input"}), 400
 
     try:
-        # Insert heart rate data into MongoDB
+        # Insert heart rate data into the MongoDB "heart_rates" collection
         db.heart_rates.insert_one({
             "user_id": user_id,
             "heart_rate": heart_rate,
             "timestamp": timestamp
         })
 
-        # Calculate average heart rate for this user
+        # Calculate average heart rate for this user by fetching all heart rates
         user_records = list(db.heart_rates.find({"user_id": user_id}))
         heart_rates = [record["heart_rate"] for record in user_records]
-        average_heart_rate = sum(heart_rates) / len(heart_rates)
+        average_heart_rate = sum(heart_rates) / len(heart_rates) if heart_rates else 0
 
         return jsonify({
             "message": "Heart rate updated successfully",
@@ -216,13 +215,19 @@ def update_heart_rate():
 @app.route('/api/average_heart_rates', methods=['GET'])
 def get_average_heart_rates():
     try:
-        users = db.heart_rates.distinct("user_id")  # Get unique user IDs
+        # Get unique user IDs
+        users = db.heart_rates.distinct("user_id")
         user_averages = {}
 
         for user_id in users:
+            # Fetch all heart rate records for this user
             user_records = list(db.heart_rates.find({"user_id": user_id}))
             heart_rates = [record["heart_rate"] for record in user_records]
-            user_averages[user_id] = sum(heart_rates) / len(heart_rates)
+            # Calculate the average heart rate for this user
+            if heart_rates:
+                user_averages[user_id] = sum(heart_rates) / len(heart_rates)
+            else:
+                user_averages[user_id] = 0  # In case no data for the user
 
         return jsonify(user_averages)
     except Exception as e:
@@ -231,7 +236,10 @@ def get_average_heart_rates():
 @app.route('/api/heart_rate_history/<int:user_id>', methods=['GET'])
 def get_heart_rate_history(user_id):
     try:
+        # Fetch the heart rate history for a specific user
         user_records = list(db.heart_rates.find({"user_id": user_id}, {"_id": 0, "heart_rate": 1, "timestamp": 1}))
+
+        # Return the history as a JSON response
         return jsonify(user_records)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
