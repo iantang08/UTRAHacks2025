@@ -141,8 +141,7 @@ ideal = []
 points = []
 active = False
 recording_mode = False
-play_mode = True
-
+play_mode = False
 
 baseline_hr = None
 baseline_active = True
@@ -154,16 +153,14 @@ decay_index = 0
 heart_rate_history = []
 
 print("Controls:")
-print("- Press LEFT to enter routine-recording mode (records the 'ideal' routine).")
-print("- Press DOWN to enter play mode (records the user attempt).")
-print("- Press and hold UP to start recording or playing; release UP to stop.")
+print("- Press Y to enter routine-recording mode (records the 'ideal' routine).")
+print("- Press B to enter play mode (records the user attempt).")
+print("- Press and hold X to start recording or playing; release UP to stop.")
 
 while True:
     status = joycon.get_status()
     gyro = status['gyro']
 
-    buttons = status['buttons']['left']
-    play_mode = True
     buttons = status['buttons']['right']
 
     up_button = buttons['x']
