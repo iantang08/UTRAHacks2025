@@ -3,6 +3,11 @@ import random
 from pyjoycon import JoyCon, get_R_id
 import time
 import serial
+import aiohttp
+import asyncio
+import io
+from pydub import AudioSegment
+import simpleaudio as sa
 
 POLLING_INTERVAL = 150  
 TOLERANCE = 10
@@ -32,6 +37,33 @@ time.sleep(2)
 
 joycon_id = get_R_id()
 joycon = JoyCon(*joycon_id)
+
+async def fetch_mp3(url):
+    """Fetch MP3 file asynchronously and return it as bytes."""
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            if response.status == 200:
+                return await response.read()
+            else:
+                print(f"Failed to fetch MP3: {response.status}")
+                return None
+
+async def play_audio(url):
+    """Fetch and play MP3 file asynchronously."""
+    mp3_data = await fetch_mp3(url)
+    if mp3_data is None:
+        return
+    
+    # Convert MP3 bytes to WAV format
+    audio = AudioSegment.from_mp3(io.BytesIO(mp3_data))
+    wav_data = io.BytesIO()
+    audio.export(wav_data, format="wav")
+    
+    # Play the audio
+    wave_obj = sa.WaveObject.from_wave_file(io.BytesIO(wav_data.getvalue()))
+    play_obj = wave_obj.play()
+    play_obj.wait_done()
+
 
 def calculate_distance(point1, point2):
     return math.sqrt(sum((p1 - p2) ** 2 for p1, p2 in zip(point1, point2)))
@@ -176,7 +208,7 @@ while True:
             score = calculate_score(points, ideal)
             print("User points:", points)
             print("Score:", score)
-
+            asyncio.run(play_audio(f"http://34.169.141.219:5000/score/{score}"))
             distance = (score ** 2) / 400
             arduino.write((str(score) + "\n").encode())
             print("Sent " + str(distance) + " command to Arduino.")
