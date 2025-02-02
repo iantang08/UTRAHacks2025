@@ -7,6 +7,7 @@ from bson.objectid import ObjectId  # For handling MongoDB ObjectId
 import sys
 import os
 
+STR_LENGTH_LIMIT = 30
 # Add the parent directory to the sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend')))
 
@@ -55,7 +56,7 @@ def tutorial():
 def home():
     if request.method == 'POST':
         exercise_name = request.form.get('exercise_name').strip()
-        if exercise_name and len(exercise_name) <= 20:
+        if exercise_name and len(exercise_name) <= STR_LENGTH_LIMIT:
             # Prevent duplicate entries
             existing_exercise = collection.find_one({"exercise_name": exercise_name})
             if not existing_exercise:
@@ -162,7 +163,7 @@ def get_exercises():
 def statistics():
     # Create Stat objects for each user
     stats = [
-        Stat("John Doe", 1, (25, 36, 50), 75, (25, 35, 50)),
+        Stat("John Doe", 1, (25, 36, 50), 75, (25, 35, 75)),
         Stat("Jane Doe", 2, (28, 40, 52), 80, (25, 36, 50))
     ]
     
