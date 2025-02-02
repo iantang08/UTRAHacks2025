@@ -1,39 +1,96 @@
-{% extends "layout.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heart Rate Statistics</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
 
-{% block title %}Statistics{% endblock %}
+    <h1>Heart Rate Statistics</h1>
 
-{% block content %}
-    <h1>Statistics Overview</h1>
+    {% for user_id, heart_rates in user_heart_rates.items() %}
+        <h2>User {{ user_id }} - Average Heart Rate: 
+            {{ (heart_rates | map(attribute='heart_rate') | sum) / heart_rates | length }}
+        </h2>
 
-    <table border="1">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>ID</th>
-                <th>Data</th>
-                <th>Heart Rate</th>
-                <th>Consistency</th>  <!-- New Column for Consistency -->
-                <th>Heart Rate History</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for stat in stats %}
-                <tr>
-                    <td>{{ stat.name }}</td> <!-- Name -->
-                    <td>{{ stat.id }}</td> <!-- ID -->
-                    <td>{{ stat.data }}</td> <!-- Data -->
-                    <td>{{ stat.heartrate }}</td> <!-- Heart Rate -->
-                    <td>{{ stat.consistency|round(2) }}</td> <!-- Consistency Score -->
-                    <td>{{ stat.heart_rate_history }}</td>
-                </tr>
-            {% else %}
-                <tr>
-                    <td colspan="5">No statistics available</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    
-    
-    
-{% endblock %}
+        <canvas id="chart-{{ user_id }}" width="400" height="200"></canvas>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                var ctx = document.getElementById('chart-{{ user_id }}').getContext('2d');
+
+                var timestamps = {{ heart_rates | map(attribute='timestamp') | list | tojson }};
+                var heartRates = {{ heart_rates | map(attribute='heart_rate') | list | tojson }};
+
+                // Function to calculate the linear regression (line of best fit)
+                function linearRegression(x, y) {
+                    let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+                    let n = x.length;
+
+                    for (let i = 0; i < n; i++) {
+                        sumX += x[i];
+                        sumY += y[i];
+                        sumXY += x[i] * y[i];
+                        sumXX += x[i] * x[i];
+                    }
+
+                    let slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+                    let intercept = (sumY - slope * sumX) / n;
+
+                    // Generate trendline data
+                    let trendlineData = x.map(val => slope * val + intercept);
+                    return trendlineData;
+                }
+
+                var trendlineData = linearRegression(timestamps, heartRates);
+
+                var chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: timestamps,
+                        datasets: [
+                            {
+                                label: 'Heart Rate',
+                                data: heartRates,
+                                borderColor: 'rgb(255, 99, 132)',
+                                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                                fill: false,
+                                tension: 0.1
+                            },
+                            {
+                                label: 'Trend Line',
+                                data: trendlineData,
+                                borderColor: 'rgb(54, 162, 235)',
+                                borderWidth: 2,
+                                fill: false,
+                                borderDash: [5, 5]  // Dashed line for better visibility
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Time (Timestamp)'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Heart Rate (BPM)'
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+        </script>
+
+    {% endfor %}
+
+</body>
+</html>

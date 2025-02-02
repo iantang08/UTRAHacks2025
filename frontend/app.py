@@ -14,14 +14,14 @@ from Stat import Stat
 # Initialize user_heart_rates with sample data containing timestamps
 user_heart_rates = {
     1: [
-        {'timestamp': 1609459200, 'heart_rate': 72},
-        {'timestamp': 1609459260, 'heart_rate': 75},
-        {'timestamp': 1609459320, 'heart_rate': 78},
+        {'timestamp': 1609459200%1000, 'heart_rate': 10},
+        {'timestamp': 1609459260%1000, 'heart_rate': 75},
+        {'timestamp': 1609459320%1000, 'heart_rate': 80},
         # Add more entries as needed
     ],
     2: [
-        {'timestamp': 1609459200, 'heart_rate': 65},
-        {'timestamp': 1609459260, 'heart_rate': 68},
+        {'timestamp': 1609459200%1000, 'heart_rate': 65},
+        {'timestamp': 1609459260%1000, 'heart_rate': 68},
         # Add more entries as needed
     ]
 }
@@ -112,12 +112,12 @@ def statistics():
         Stat("John Doe", 1, (25, 36, 50), 75, (25, 35, 50)),
         Stat("Jane Doe", 2, (28, 40, 52), 80, (25, 36, 50))
     ]
-    
-    # Calculate consistency for each stat and pass to template
+
     for stat in stats:
         stat.consistency = stat.calculate_consistency()
-    
-    return render_template("statistics.html", stats=stats)
+
+    # Pass user heart rates to the template
+    return render_template("statistics.html", stats=stats, user_heart_rates=user_heart_rates)
 
 def calculate_average(heart_rate_list):
     return sum(heart_rate_list) / len(heart_rate_list)
@@ -125,31 +125,56 @@ def calculate_average(heart_rate_list):
 @app.route('/update_heart_rate', methods=['POST'])
 def update_heart_rate():
     data = request.get_json()
+    user_id = data.get('id')
+    heart_rate = data.get('heart_rate')
+    timestamp = data.get('timestamp')  # Expecting timestamp input
 
-    user_id = data['id']
-    heart_rate = data['heart_rate']
+    if not user_id or not heart_rate or not timestamp:
+        return jsonify({"error": "Invalid input"}), 400
 
-    # If the user doesn't have a heart rate list, create one
-    if user_id not in user_heart_rates:
-        user_heart_rates[user_id] = []
+    try:
+        # Insert heart rate data into MongoDB
+        db.heart_rates.insert_one({
+            "user_id": user_id,
+            "heart_rate": heart_rate,
+            "timestamp": timestamp
+        })
 
-    # Add the new heart rate to the list
-    user_heart_rates[user_id].append(heart_rate)
+        # Calculate average heart rate for this user
+        user_records = list(db.heart_rates.find({"user_id": user_id}))
+        heart_rates = [record["heart_rate"] for record in user_records]
+        average_heart_rate = sum(heart_rates) / len(heart_rates)
 
-    # If the list exceeds 10, pop the first (oldest) heart rate
-    if len(user_heart_rates[user_id]) > 10:
-        user_heart_rates[user_id].pop(0)
+        return jsonify({
+            "message": "Heart rate updated successfully",
+            "average_heart_rate": average_heart_rate
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-    # Calculate the average heart rate if we have 10 or more entries
-    average_heart_rate = calculate_average(user_heart_rates[user_id])
+@app.route('/api/average_heart_rates', methods=['GET'])
+def get_average_heart_rates():
+    try:
+        users = db.heart_rates.distinct("user_id")  # Get unique user IDs
+        user_averages = {}
 
-    # Store the average heart rate (you could save it to a database)
-    user_heart_rates[user_id].append(average_heart_rate)
+        for user_id in users:
+            user_records = list(db.heart_rates.find({"user_id": user_id}))
+            heart_rates = [record["heart_rate"] for record in user_records]
+            user_averages[user_id] = sum(heart_rates) / len(heart_rates)
 
-    return jsonify({
-        'message': 'Heart rate updated successfully',
-        'average_heart_rate': average_heart_rate
-    })
+        return jsonify(user_averages)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/heart_rate_history/<int:user_id>', methods=['GET'])
+def get_heart_rate_history(user_id):
+    try:
+        user_records = list(db.heart_rates.find({"user_id": user_id}, {"_id": 0, "heart_rate": 1, "timestamp": 1}))
+        return jsonify(user_records)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True)
