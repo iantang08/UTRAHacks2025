@@ -1,4 +1,7 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+import ast
+import subprocess
+
+from flask import Flask, render_template, request, redirect, url_for, jsonify, Response
 from pymongo import MongoClient
 from bson.objectid import ObjectId  # For handling MongoDB ObjectId
 import sys
@@ -84,6 +87,55 @@ def edit(exercise_name):
         return render_template('edit.html', exercise_name=exercise_name)
     else:
         return render_template('error.html')
+
+# edit script!!!
+@app.route('/edit-script/<exercise_name>')
+def edit_script(exercise_name):
+    def generate():
+        # Run the Python script
+        process = subprocess.Popen(
+            ['python', '../backend/edit.py'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+
+        # Stream the output line by line
+        for line in process.stdout:
+            tuple_list = eval(line)
+            collection.update_one(
+                {"exercise_name": exercise_name},  # Filter to find the document
+                {"$set": {"moves": tuple_list}})
+            yield f"data: {line}\n\n"  # SSE format
+
+        # Handle errors
+        for line in process.stderr:
+            yield "error"
+
+    return Response(generate(), mimetype='text/event-stream')
+
+# run script!!!
+@app.route('/run-script/<exercise_name>')
+def run_script(exercise_name):
+    def generate():
+        # Run the Python script
+        process = subprocess.Popen(
+            ['python', '../backend/run.py'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+
+        # Stream the output line by line
+        for line in process.stdout:
+            print(line)
+            yield f"data: {line}\n\n"
+
+        # Handle errors
+        for line in process.stderr:
+            yield "error"
+
+    return Response(generate(), mimetype='text/event-stream')
 
 # ✅ New API Endpoint to Upload Data
 @app.route('/upload', methods=['POST'])
@@ -181,4 +233,4 @@ def get_heart_rate_history(user_id):
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()

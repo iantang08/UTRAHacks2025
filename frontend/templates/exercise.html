@@ -1,5 +1,31 @@
 {% extends "layout.html" %}
 {% block content %}
-    <h1>{{ exercise_name }}</h1>
+    <h1>{{ "Currently on: " + exercise_name }}</h1>
+    <!-- Display the script output here -->
+    <div id="output">
+        <span id="rep_count">Waiting!!</span>
+        <span id="cur">a</span>
+    </div>
+
+    <!-- Add JavaScript to fetch the output when the page loads -->
+    <script>
+        // Create an EventSource to listen for updates from the /run-script route
+        const exerciseName = "{{ exercise_name }}";  // Pass the exercise_name to JavaScript
+        const eventSource = new EventSource("/run-script/" + exerciseName);
+        console.log(eventSource);
+
+        // Listen for messages from the server
+        eventSource.onmessage = function(event) {
+            document.getElementById('cur').innerText = event.data;
+        };
+
+        // Handle errors
+        eventSource.onerror = function(event) {
+            console.error("EventSource failed.");
+            document.getElementById('cur').innerText = "Failed to connect";
+            eventSource.close();
+        };
+
+    </script>
     <button onclick="window.location.href='{{ url_for('home') }}'">Back to Home</button>
 {% endblock %}
