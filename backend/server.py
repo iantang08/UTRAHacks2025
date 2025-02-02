@@ -101,4 +101,5 @@ def audio_gen():
     # Return the buffer as an audio file response
     return send_file(audio_buffer, mimetype="audio/mpeg", as_attachment=True, download_name="output.mp3")
 
-app.run(debug=True)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8080)
