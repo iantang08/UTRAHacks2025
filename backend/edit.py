@@ -1,6 +1,6 @@
 import math
 import random
-from pyjoycon import JoyCon, get_L_id
+from pyjoycon import JoyCon, get_L_id, get_R_id
 import time
 
 # -------------- Constants & Configuration --------------
@@ -34,7 +34,7 @@ DELTA_THRESHOLD = 5.0       # “High” movement threshold
 BASELINE_RANGE = 10.0       # If HR goes outside ±10 BPM of baseline, we disable baseline corrections
 
 # -------------- JoyCon Initialization --------------
-joycon_id = get_L_id()
+joycon_id = get_R_id()
 joycon = JoyCon(*joycon_id)
 
 # -------------- Helper Functions --------------
@@ -137,7 +137,7 @@ def update_heart_rate(
 ideal = []
 points = []
 active = False
-recording_mode = False
+recording_mode = True
 play_mode = False
 
 baseline_hr = None
@@ -149,144 +149,36 @@ decay_index = 0
 
 heart_rate_history = []
 
-print("Controls:")
-print("- Press LEFT to enter routine-recording mode (records the 'ideal' routine).")
-print("- Press DOWN to enter play mode (records the user attempt).")
-print("- Press and hold UP to start recording or playing; release UP to stop.")
-
 while True:
     status = joycon.get_status()
     gyro = status['gyro']
-    buttons = status['buttons']['left']
+    buttons = status['buttons']['right']
 
     # Button mappings
-    up_button = buttons['up']
-    left_button = buttons['left']
-    down_button = buttons['down']
+    up_button = buttons['x']
 
-    # --- Enter recording mode (left button) ---
-    if left_button == 1:
-        if not recording_mode and not play_mode:
-            print("Entering recording mode (ideal routine)...")
-            recording_mode = True
-            play_mode = False
-            time.sleep(0.5)  # debounce
-        elif recording_mode:
-            print("Exiting recording mode...")
-            recording_mode = False
-            time.sleep(0.5)
-
-    # --- Enter play mode (down button) ---
-    if down_button == 1:
-        if not play_mode and not recording_mode:
-            print("Entering play mode (user attempt)...")
-            play_mode = True
-            recording_mode = False
-            time.sleep(0.5)
-        elif play_mode:
-            print("Exiting play mode...")
-            play_mode = False
-            # recording_mode = False
-            time.sleep(0.5)  # debounce
-
-
-    # --- Start recording or playing (hold up button) ---
-    if up_button == 1 and not active:
-        if recording_mode:
-            print("Starting routine recording...")
-            points = []
-            active = True
-            time.sleep(0.5)  # debounce
-
-        elif play_mode:
-            print("Starting user attempt...")
-            points = []
-            active = True
-
-            # Pick a random baseline between 70.0 and 80.0
-            baseline_hr = random.uniform(70.0, 80.0)
-            heart_rate = baseline_hr
-            # baseline_active = True
-
-            # Reset dynamic indexes
-            growth_index = 0
-            decay_index = 0
-
-            heart_rate_history = []
-            time.sleep(0.5)  # debounce
 
     # --- Stop recording or playing (release up button) ---
+    if up_button == 0 and not active:
+        continue
+
+    if up_button == 1 and not active:
+        active = True
+        continue
+
     if up_button == 0 and active:
         if recording_mode:
-            print("Stopping routine recording...")
             ideal = points.copy()
             points = []
             active = False
             # recording_mode = False
-            print("Routine saved!")
-            print("Ideal routine:", ideal)
-            time.sleep(0.5)  # debounce
-
-        elif play_mode:
-            print("Stopping user attempt...")
-            score = calculate_score(points, ideal)
-            print("User points:", points)
-            print("Score:", score)
-
-            points = []
-            active = False
-            # play_mode = False
-
-            # Compute average heart rate
-            if heart_rate_history:
-                avg_hr = sum(heart_rate_history) / len(heart_rate_history)
-            else:
-                avg_hr = heart_rate
-            print(f"Average heart rate: {avg_hr:.2f}")
-
-            # Reset
-            heart_rate_history = []
-            baseline_hr = None
-            baseline_active = True
-            heart_rate = 0
-            growth_index = 0
-            decay_index = 0
-
-            time.sleep(0.5)  # debounce
+            print(ideal)
+            break
 
     # --- If we are actively recording or playing ---
     if active:
         # Get current gyro data
         x, y, z = map(lambda g: int(g // GYRO_SCALE), [gyro['x'], gyro['y'], gyro['z']])
         points.append((x, y, z))
-        print(f"Recorded point: ({x}, {y}, {z})")
-
-        # Heart rate logic only in play mode
-        if play_mode and baseline_hr is not None:
-            # Dist from previous reading
-            if len(points) >= 2:
-                px, py, pz = points[-2]
-                dist = calculate_distance((px, py, pz), (x, y, z))
-            else:
-                dist = 0.0
-
-            # Update heart rate with dynamic growth & decay
-            heart_rate, growth_index, decay_index = update_heart_rate(
-                heart_rate,
-                growth_index,
-                decay_index,
-                dist,
-                baseline_hr,
-                baseline_active
-            )
-
-            # Check if we've left baseline range
-            # Once we leave baseline, we never go back
-            if baseline_active:
-                if (heart_rate > baseline_hr + BASELINE_RANGE) or (heart_rate < baseline_hr - BASELINE_RANGE):
-                    baseline_active = False
-
-            # Store for final average
-            heart_rate_history.append(heart_rate)
 
     time.sleep(POLLING_INTERVAL / 1000)

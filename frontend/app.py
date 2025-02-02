@@ -39,6 +39,7 @@ try:
     client = MongoClient(MONGO_URI)  # Connect to MongoDB Atlas
     db = client["fitness_db"]  # Database name
     collection = db["exercises"]  # Collection name
+    people = db["people"]  # Collection name
     print("✅ Connected to MongoDB Atlas successfully")
 except Exception as e:
     print(f"❌ Error connecting to MongoDB Atlas: {e}")
@@ -94,7 +95,7 @@ def edit_script(exercise_name):
     def generate():
         # Run the Python script
         process = subprocess.Popen(
-            ['python', '../backend/edit.py'],
+            ['python', '../backend/edit.py', ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True
@@ -114,28 +115,26 @@ def edit_script(exercise_name):
 
     return Response(generate(), mimetype='text/event-stream')
 
+def generate():
+    # Run the Python script
+    process = subprocess.Popen(
+        ['python', '../backend/edit.py'],
+        stdout=subprocess.PIPE,  # Capture stdout
+        universal_newlines=True  # Ensure text mode
+    )
+
+    # Stream the output line by line
+    for line in process.stdout:
+        yield f"data: {line}\n\n"
+
+    # Handle errors
+    for line in process.stderr:
+        yield "error"
+
 # run script!!!
 @app.route('/run-script/<exercise_name>')
 def run_script(exercise_name):
-    def generate():
-        # Run the Python script
-        process = subprocess.Popen(
-            ['python', '../backend/run.py'],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
-        )
-
-        # Stream the output line by line
-        for line in process.stdout:
-            print(line)
-            yield f"data: {line}\n\n"
-
-        # Handle errors
-        for line in process.stderr:
-            yield "error"
-
-    return Response(generate(), mimetype='text/event-stream')
+    return Response(generate(exercise_name), mimetype='text/event-stream')
 
 # ✅ New API Endpoint to Upload Data
 @app.route('/upload', methods=['POST'])
@@ -229,4 +228,4 @@ def get_heart_rate_history(user_id):
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(threaded=True)
