@@ -2,6 +2,7 @@ import math
 import random
 from pyjoycon import JoyCon, get_L_id
 import time
+import serial
 
 
 POLLING_INTERVAL = 150  
@@ -25,24 +26,18 @@ DECAY_INDEX_MAX = 3
 
 DELTA_THRESHOLD = 5.0   
 
-BASELINE_RANGE = 10.0     
+BASELINE_RANGE = 10.0
+
+arduino = serial.Serial('COM3', 9600, timeout=1)
+time.sleep(2) 
 
 joycon_id = get_L_id()
 joycon = JoyCon(*joycon_id)
 
 def calculate_distance(point1, point2):
-    """Euclidean distance in 3D."""
     return math.sqrt(sum((p1 - p2) ** 2 for p1, p2 in zip(point1, point2)))
 
 def calculate_score(user_points, ideal_points):
-    """
-    Compare the user's points vs. the recorded ideal points,
-    returning a score from 0 to 100 (best).
-
-    - If distance <= TOLERANCE, no penalty.
-    - If distance > TOLERANCE, penalty = ((distance - TOLERANCE) ** VARIANCE_POWER).
-    - The total average penalty is scaled by SCALE, subtracted from 100.
-    """
     if not user_points or not ideal_points:
         return 0
 
@@ -73,25 +68,6 @@ def update_heart_rate(
     baseline_hr,
     baseline_active
 ):
-    """
-    Updates heart_rate given the distance (dist) between consecutive frames.
-
-    1) If dist > DELTA_THRESHOLD => "high movement"
-       - growth_index += 1 (capped at GROWTH_INDEX_MAX)
-       - decay_index = 0 (reset decay buildup)
-    2) Else => "low movement"
-       - decay_index += 1 (capped at DECAY_INDEX_MAX)
-       - growth_index = 0
-
-    3) growth_factor = max(0, BASE_GROWTH - growth_index * GROWTH_DECAY_INCREMENT)
-    4) decay_factor = BASE_DECAY + (decay_index * DECAY_INCREMENT)
-    5) heart_rate += dist * growth_factor
-    6) If baseline_active == True, we apply "half" the normal decay
-       (pretending we're near baseline). Otherwise, apply the full decay.
-    7) Clamp heart_rate to [HEART_RATE_MIN, HEART_RATE_MAX].
-
-    Returns: (updated_heart_rate, updated_growth_index, updated_decay_index)
-    """
 
     if dist > DELTA_THRESHOLD:
         growth_index = min(growth_index + 1, GROWTH_INDEX_MAX)
@@ -201,6 +177,13 @@ while True:
             score = calculate_score(points, ideal)
             print("User points:", points)
             print("Score:", score)
+
+            if score > 70:
+                arduino.write(b"FORWARD\n")
+                print("Sent FORWARD command to Arduino.")
+            else:
+                arduino.write(b"BACKWARD\n")
+                print("Sent BACKWARD command to Arduino.")  
 
             points = []
             active = False
