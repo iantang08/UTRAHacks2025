@@ -8,9 +8,11 @@
     <ul>
         {% for exercise in exercises %}
             <li>
-                {{ exercise }}
-                <a href="{{ url_for('remove_exercise', exercise_name=exercise) }}">Remove</a>
-                <a href="{{ url_for('exercise', exercise_name=exercise) }}">Start</a>
+                <span>{{ exercise }}</span>
+                <div>
+                    <a href="{{ url_for('remove_exercise', exercise_name=exercise) }}">Remove</a>
+                    <a href="{{ url_for('exercise', exercise_name=exercise) }}">Start</a>
+                </div>
             </li>
         {% endfor %}
     </ul>
