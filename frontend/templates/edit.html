@@ -1,21 +1,31 @@
 {% extends "layout.html" %}
 {% block content %}
     <h1>{{ "Editing: " + exercise_name }}</h1>
+    <!-- Display the script output here -->
+    <div id="output">
+        <span id="script-finished">Waiting!!</span>
+    </div>
+
+    <!-- Add JavaScript to fetch the output when the page loads -->
     <script>
-        document.getElementById('run-script-btn').addEventListener('click', function() {
-            fetch('/run-script')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.output) {
-                        document.getElementById('output').innerText = data.output;
-                    } else if (data.error) {
-                        document.getElementById('output').innerText = "Error: " + data.error;
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                });
-        });
+        // Create an EventSource to listen for updates from the /run-script route
+        const exerciseName = "{{ exercise_name }}";  // Pass the exercise_name to JavaScript
+        const eventSource = new EventSource("/edit-script/" + exerciseName);
+        console.log(eventSource)
+
+        // Listen for messages from the server
+        eventSource.onmessage = function(event) {
+            document.getElementById('script-finished').innerText = "Exercise edited!";
+            eventSource.close();
+        };
+
+        // Handle errors
+        eventSource.onerror = function(event) {
+            console.error("EventSource failed.");
+            document.getElementById('script-finished').innerText = "Failed to connect";
+            eventSource.close();
+        };
+
     </script>
     <button onclick="window.location.href='{{ url_for('home') }}'">Back to Home</button>
 {% endblock %}
